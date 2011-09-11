@@ -12,7 +12,7 @@ args <- commandArgs(trailingOnly=TRUE)
 filename = args[1]
 
 
-filename <- './EscChIPseqREST_peaks.RangedData.RData'
+#filename <- './EscChIPseqREST_peaks.RangedData.RData'
 rd <- get(load(filename))
 
 library(ChIPpeakAnno)

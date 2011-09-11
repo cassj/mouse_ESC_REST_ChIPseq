@@ -8,9 +8,11 @@ set :ssh_options, { :user => "ubuntu", :keys=>[ENV['EC2_KEYFILE']]}
 set :key, ENV['EC2_KEY']
 set :key_file, ENV['EC2_KEYFILE']
 #set :ami, 'ami-5bab9c2f'  #EC2 eu-west-1 64bit Maverick, EBS
-set :ami, 'ami-2f4b7d5b' # Ubuntu lab eu-west-1 64bit Maverick, EBS
-#set :instance_type,  'c1.xlarge' # large for bowtie 
-set :instance_type, 'm1.large'
+#set :ami, 'ami-2f4b7d5b' # Ubuntu lab eu-west-1 64bit Maverick, EBS
+set :ami, `curl http://mng.iop.kcl.ac.uk/cass_data/buckley_ami/AMIID`.chomp
+
+set :instance_type,  'c1.xlarge' # large for bowtie 
+#set :instance_type, 'm1.large'
 set :working_dir, '/mnt/work'
 set :nhosts, 1
 set :group_name, 'EscChIPseqREST'
@@ -18,7 +20,8 @@ set :snap_id, `cat SNAPID`.chomp
 set :vol_id, `cat VOLUMEID`.chomp 
 set :ebs_size, 30
 set :availability_zone, 'eu-west-1a'
-set :dev, '/dev/sdf'
+#set :dev, '/dev/sdf'
+set :dev, '/dev/xvdf'
 set :mount_point, '/mnt/data'
 
 
@@ -48,7 +51,7 @@ end
 
 desc "Upload data files"
 task :upload_data, :roles => group_name do
-    puts "rsync -e 'ssh -i /home/cassj/ec2/cassj.pem' -vzP data/* ubuntu@ec2-79-125-38-200.eu-west-1.compute.amazonaws.com:#{mount_point}" 
+    puts "rsync -e 'ssh -i /home/cassj/ec2/cassj.pem' -vzP data/* ubuntu@ec2-46-137-67-85.eu-west-1.compute.amazonaws.com:#{mount_point}" 
 end
 before 'upload_data', 'EC2:start'
 
@@ -120,7 +123,7 @@ task :fastqc, :roles => group_name do
   files = files.map {|f| f.chomp}
    
   files.each{|infile| 
-    run "#{working_dir}/FastQC/fastqc --outdir #{mount_point} #{infile}"
+    run "fastqc --outdir #{mount_point} #{infile}"
   } 
 
 end
@@ -154,11 +157,12 @@ task :run_bowtie, :roles => group_name do
 
   files.each{|infile|
     outfile = infile.sub('.fastq', '.sam')
-    puts("#{working_dir}/bowtie-0.12.7/bowtie  --sam --best -k1 -l15 -n1 -m3 -p20 --solexa-quals --chunkmbs 256  -q mm9 --quiet #{infile}  > #{outfile} ")
+    puts("bowtie  --sam --best -k1 -l15 -n1 -m3 -p20 --solexa-quals --chunkmbs 256  -q mm9 --quiet #{infile}  > #{outfile} ")
   } 
 
 end
 before "run_bowtie", "EC2:start"
+
 
 # Make binary BAM files from SAM
 desc "make bam from sam"
